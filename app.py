@@ -13,6 +13,11 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
+# Configuration from environment variables
+DEBUG = os.environ.get('FLASK_DEBUG', '0') == '1'
+PORT = int(os.environ.get('PORT', 5000))
+HOST = os.environ.get('HOST', '0.0.0.0')
+
 # Global variables to store loaded models and preprocessing components
 svm_model = None
 rf_model = None
@@ -22,8 +27,8 @@ feature_info = None
 sample_data = None
 
 # Paths
-MODELS_DIR = 'saved_models'
-CSV_BASE_PATH = 'CSV/CSV'
+MODELS_DIR = os.environ.get('MODELS_DIR', 'saved_models')
+CSV_BASE_PATH = os.environ.get('CSV_BASE_PATH', 'CSV/CSV')
 
 def load_models():
     """Load all trained models and preprocessing components"""
@@ -55,6 +60,39 @@ def load_sample_data():
     print("Loading sample data for examples...")
     
     try:
+        # Check if CSV directory exists (may not in production)
+        if not os.path.exists(CSV_BASE_PATH):
+            print("CSV directory not found, using hardcoded sample data")
+            # Use hardcoded sample data for production deployment
+            sample_data = [
+                {
+                    'Header_Length': 64.0, 'Tot sum': 1200.0, 'AVG': 60.0, 'Protocol Type': 6.0,
+                    'Max': 150.0, 'syn_flag_number': 0.0, 'fin_flag_number': 0.0, 'Variance': 25.0,
+                    'psh_flag_number': 1.0, 'UDP': 1.0, 'IAT': 0.001, 'ack_count': 10.0,
+                    'TCP': 0.0, 'ICMP': 0.0, 'Number': 5.0, 'Rate': 1000.0,
+                    'ack_flag_number': 1.0, 'HTTP': 0.0, 'Min': 0.0, 'HTTPS': 0.0,
+                    'label': 'Benign_Final'
+                },
+                {
+                    'Header_Length': 20.0, 'Tot sum': 5000.0, 'AVG': 250.0, 'Protocol Type': 17.0,
+                    'Max': 500.0, 'syn_flag_number': 1.0, 'fin_flag_number': 0.0, 'Variance': 100.0,
+                    'psh_flag_number': 0.0, 'UDP': 0.0, 'IAT': 0.01, 'ack_count': 2.0,
+                    'TCP': 1.0, 'ICMP': 0.0, 'Number': 10.0, 'Rate': 500.0,
+                    'ack_flag_number': 0.0, 'HTTP': 0.0, 'Min': 50.0, 'HTTPS': 0.0,
+                    'label': 'DDoS-ICMP_Flood'
+                },
+                {
+                    'Header_Length': 40.0, 'Tot sum': 3000.0, 'AVG': 150.0, 'Protocol Type': 17.0,
+                    'Max': 300.0, 'syn_flag_number': 1.0, 'fin_flag_number': 0.0, 'Variance': 50.0,
+                    'psh_flag_number': 0.0, 'UDP': 0.0, 'IAT': 0.005, 'ack_count': 5.0,
+                    'TCP': 1.0, 'ICMP': 0.0, 'Number': 8.0, 'Rate': 600.0,
+                    'ack_flag_number': 0.0, 'HTTP': 0.0, 'Min': 30.0, 'HTTPS': 0.0,
+                    'label': 'Mirai-udpplain'
+                }
+            ]
+            print(f"Loaded {len(sample_data)} hardcoded sample rows")
+            return
+        
         # Load a few samples from different classes
         sample_rows = []
         
@@ -80,13 +118,35 @@ def load_sample_data():
         
         if sample_rows:
             sample_data = sample_rows
-            print(f"Loaded {len(sample_data)} sample rows")
+            print(f"Loaded {len(sample_data)} sample rows from CSV files")
         else:
-            print("Warning: No sample data loaded")
+            print("Warning: No sample data loaded from CSV, using hardcoded samples")
+            # Fallback to hardcoded samples
+            sample_data = [
+                {
+                    'Header_Length': 64.0, 'Tot sum': 1200.0, 'AVG': 60.0, 'Protocol Type': 6.0,
+                    'Max': 150.0, 'syn_flag_number': 0.0, 'fin_flag_number': 0.0, 'Variance': 25.0,
+                    'psh_flag_number': 1.0, 'UDP': 1.0, 'IAT': 0.001, 'ack_count': 10.0,
+                    'TCP': 0.0, 'ICMP': 0.0, 'Number': 5.0, 'Rate': 1000.0,
+                    'ack_flag_number': 1.0, 'HTTP': 0.0, 'Min': 0.0, 'HTTPS': 0.0,
+                    'label': 'Benign_Final'
+                }
+            ]
             
     except Exception as e:
         print(f"Error loading sample data: {e}")
-        sample_data = []
+        print("Using hardcoded sample data as fallback")
+        # Fallback to hardcoded samples
+        sample_data = [
+            {
+                'Header_Length': 64.0, 'Tot sum': 1200.0, 'AVG': 60.0, 'Protocol Type': 6.0,
+                'Max': 150.0, 'syn_flag_number': 0.0, 'fin_flag_number': 0.0, 'Variance': 25.0,
+                'psh_flag_number': 1.0, 'UDP': 1.0, 'IAT': 0.001, 'ack_count': 10.0,
+                'TCP': 0.0, 'ICMP': 0.0, 'Number': 5.0, 'Rate': 1000.0,
+                'ack_flag_number': 1.0, 'HTTP': 0.0, 'Min': 0.0, 'HTTPS': 0.0,
+                'label': 'Benign_Final'
+            }
+        ]
 
 @app.route('/')
 def index():
@@ -203,5 +263,6 @@ load_sample_data()
 
 if __name__ == '__main__':
     print("Starting Flask server...")
-    print("Access the demo at: http://localhost:5000")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    print(f"Access the demo at: http://{HOST}:{PORT}")
+    print(f"Debug mode: {DEBUG}")
+    app.run(host=HOST, port=PORT, debug=DEBUG)
