@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Intrusion Detection Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .input-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .sample-selector {
+            margin-bottom: 20px;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            background: white;
+        }
+
+        .advanced-section {
+            margin-top: 20px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+
+        .advanced-toggle {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .advanced-toggle:hover {
+            background: #5a6268;
+        }
+
+        .advanced-content {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .advanced-content.show {
+            display: block;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .feature-input {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .feature-input label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .feature-input input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .classify-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s;
+        }
+
+        .classify-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .classify-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-section {
+            display: none;
+            margin-top: 30px;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .result-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+        }
+
+        .result-card.hybrid {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .result-card.hybrid .prediction-label,
+        .result-card.hybrid .confidence-label {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .result-card.hybrid .prediction-value,
+        .result-card.hybrid .confidence-value {
+            color: white;
+        }
+
+        .model-name {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .prediction-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .prediction-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+            word-wrap: break-word;
+        }
+
+        .confidence-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .confidence-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .feature-info {
+            font-size: 12px;
+            color: #999;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>IoT Intrusion Detection Demo</h1>
+        <p class="subtitle">Hybrid ML-based Traffic Classification System</p>
+
+        <div class="input-section">
+            <div class="section-title">Select Traffic Sample</div>
+            
+            <div class="sample-selector">
+                <select id="sampleSelect">
+                    <option value="">Loading samples...</option>
+                </select>
+            </div>
+
+            <div class="advanced-section">
+                <button class="advanced-toggle" onclick="toggleAdvanced()">Advanced: Manual Feature Entry</button>
+                <div class="advanced-content" id="advancedContent">
+                    <div class="feature-grid" id="featureGrid">
+                        <!-- Feature inputs will be generated here -->
+                    </div>
+                </div>
+            </div>
+
+            <button class="classify-btn" id="classifyBtn" onclick="classifyTraffic()">Classify Traffic</button>
+            <p class="feature-info">Uses 20 pre-selected features from the CICIoT2023 dataset</p>
+        </div>
+
+        <div class="loading" id="loading">
+            <p>Analyzing traffic patterns...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="results-section" id="resultsSection">
+            <div class="section-title">Classification Results</div>
+            <div class="results-grid">
+                <div class="result-card">
+                    <div class="model-name">SVM Model</div>
+                    <div class="prediction-label">Predicted Class:</div>
+                    <div class="prediction-value" id="svmPrediction">-</div>
+                    <div class="confidence-label">Confidence:</div>
+                    <div class="confidence-value" id="svmConfidence">-</div>
+                </div>
+
+                <div class="result-card">
+                    <div class="model-name">Random Forest Model</div>
+                    <div class="prediction-label">Predicted Class:</div>
+                    <div class="prediction-value" id="rfPrediction">-</div>
+                    <div class="confidence-label">Confidence:</div>
+                    <div class="confidence-value" id="rfConfidence">-</div>
+                </div>
+
+                <div class="result-card hybrid">
+                    <div class="model-name">Hybrid Model (SVM + RF)</div>
+                    <div class="prediction-label">Final Decision:</div>
+                    <div class="prediction-value" id="hybridPrediction">-</div>
+                    <div class="confidence-label">Combined Confidence:</div>
+                    <div class="confidence-value" id="hybridConfidence">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let samples = [];
+        let featureNames = [];
+        let currentFeatures = [];
+
+        // Load samples on page load
+        window.onload = function() {
+            loadSamples();
+        };
+
+        function loadSamples() {
+            fetch('/sample')
+                .then(response => response.json())
+                .then(data => {
+                    samples = data.samples;
+                    featureNames = data.feature_names;
+                    
+                    // Populate sample selector
+                    const select = document.getElementById('sampleSelect');
+                    select.innerHTML = '<option value="">-- Select a sample --</option>';
+                    
+                    samples.forEach((sample, index) => {
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.textContent = `Sample ${index + 1}: ${sample.class}`;
+                        select.appendChild(option);
+                    });
+
+                    // Generate feature input fields
+                    generateFeatureInputs();
+                })
+                .catch(error => {
+                    console.error('Error loading samples:', error);
+                    document.getElementById('sampleSelect').innerHTML = 
+                        '<option value="">Error loading samples</option>';
+                });
+        }
+
+        function generateFeatureInputs() {
+            const grid = document.getElementById('featureGrid');
+            grid.innerHTML = '';
+            
+            featureNames.forEach((name, index) => {
+                const div = document.createElement('div');
+                div.className = 'feature-input';
+                div.innerHTML = `
+                    <label>${name}</label>
+                    <input type="number" step="any" id="feature_${index}" placeholder="0.0">
+                `;
+                grid.appendChild(div);
+            });
+        }
+
+        function toggleAdvanced() {
+            const content = document.getElementById('advancedContent');
+            content.classList.toggle('show');
+        }
+
+        document.getElementById('sampleSelect').addEventListener('change', function() {
+            const selectedIndex = this.value;
+            if (selectedIndex !== '') {
+                currentFeatures = samples[selectedIndex].features;
+                
+                // Update advanced inputs if visible
+                featureNames.forEach((name, index) => {
+                    const input = document.getElementById(`feature_${index}`);
+                    if (input) {
+                        input.value = currentFeatures[index];
+                    }
+                });
+            }
+        });
+
+        function classifyTraffic() {
+            // Get features from either sample selection or manual entry
+            const selectedIndex = document.getElementById('sampleSelect').value;
+            const advancedContent = document.getElementById('advancedContent');
+            
+            if (advancedContent.classList.contains('show')) {
+                // Use manual entry
+                currentFeatures = [];
+                for (let i = 0; i < featureNames.length; i++) {
+                    const input = document.getElementById(`feature_${i}`);
+                    const value = parseFloat(input.value) || 0;
+                    currentFeatures.push(value);
+                }
+            } else if (selectedIndex === '') {
+                showError('Please select a sample or use manual entry');
+                return;
+            }
+
+            // Show loading state
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('resultsSection').classList.remove('show');
+            document.getElementById('error').classList.remove('show');
+            document.getElementById('classifyBtn').disabled = true;
+
+            // Make prediction request
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ features: currentFeatures })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading state
+                document.getElementById('loading').classList.remove('show');
+                document.getElementById('classifyBtn').disabled = false;
+
+                if (data.error) {
+                    showError(data.error);
+                    return;
+                }
+
+                // Display results
+                document.getElementById('svmPrediction').textContent = data.svm_prediction;
+                document.getElementById('svmConfidence').textContent = 
+                    (data.svm_confidence * 100).toFixed(2) + '%';
+                
+                document.getElementById('rfPrediction').textContent = data.rf_prediction;
+                document.getElementById('rfConfidence').textContent = 
+                    (data.rf_confidence * 100).toFixed(2) + '%';
+                
+                document.getElementById('hybridPrediction').textContent = data.hybrid_prediction;
+                document.getElementById('hybridConfidence').textContent = 
+                    (data.hybrid_confidence * 100).toFixed(2) + '%';
+
+                document.getElementById('resultsSection').classList.add('show');
+            })
+            .catch(error => {
+                console.error('Prediction error:', error);
+                document.getElementById('loading').classList.remove('show');
+                document.getElementById('classifyBtn').disabled = false;
+                showError('Error making prediction. Please try again.');
+            });
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+    </script>
+</body>
+</html>
